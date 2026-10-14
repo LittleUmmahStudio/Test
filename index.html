@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Jejak Kebaikan: SK Lotong 3D (Milestone 0.1)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Noto+Naskh+Arabic:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #FFFDF5;
+      --outline: #2C3E35;
+      --green: #2E8B57;
+      --teal: #1E88E5;
+      --yellow: #FBC02D;
+      --orange: #F57C00;
+    }
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #87CEEB;
+      font-family: 'Fredoka', sans-serif;
+      color: var(--outline);
+    }
+    #game-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    /* Portrait Warning */
+    #portrait-warning {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #1B4D3E;
+      color: #FFFDF5;
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    @media screen and (orientation: portrait) and (max-width: 900px) {
+      #portrait-warning { display: flex; }
+    }
+
+    /* Start & Modal Screens */
+    .overlay-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(27, 77, 62, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .card-panel {
+      background: var(--cream);
+      border: 4px solid var(--outline);
+      border-radius: 20px;
+      padding: 22px 28px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 10px 0 rgba(0,0,0,0.25);
+      text-align: center;
+    }
+    .title-badge {
+      display: inline-block;
+      background: var(--yellow);
+      border: 3px solid var(--outline);
+      border-radius: 12px;
+      padding: 4px 14px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    h1 {
+      margin: 4px 0 8px;
+      font-size: 1.8rem;
+      color: #1B4D3E;
+    }
+    .jawi-text {
+      font-family: 'Noto Naskh Arabic', serif;
+      direction: rtl;
+    }
+    .btn-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .btn {
+      background: #4CAF50;
+      color: white;
+      border: 3px solid var(--outline);
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 0 var(--outline);
+      transition: transform 0.1s;
+    }
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 var(--outline);
+    }
+    .btn.secondary { background: #29B6F6; color: #102A43; }
+    .btn.warn { background: var(--yellow); color: var(--outline); }
+
+    /* HUD */
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+      display: none;
+    }
+    .hud-box {
+      background: rgba(255, 253, 245, 0.94);
+      border: 3px solid var(--outline);
+      border-radius: 14px;
+      padding: 8px 12px;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+      pointer-events: auto;
+    }
+    #hud-top-left {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      left: max(12px, env(safe-area-inset-left));
+      min-width: 210px;
+    }
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+    .bar-bg {
+      width: 110px;
+      height: 10px;
+      background: #E0E0E0;
+      border: 2px solid var(--outline);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .bar-fill { height: 100%; transition: width 0.3s; }
+
+    /* Mission Card */
+    #mission-card {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 340px;
+      width: auto;
+      text-align: center;
+    }
+    #mission-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: #1B4D3E;
+    }
+    #mission-desc {
+      font-size: 0.82rem;
+      margin-top: 2px;
+    }
+
+    /* Mini-map */
+    #minimap-wrap {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(12px, env(safe-area-inset-right));
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+    #minimap-canvas {
+      width: 135px;
+      height: 165px;
+      background: #D8F3DC;
+      border: 3px solid var(--outline);
+      border-radius: 12px;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+      pointer-events: auto;
+    }
+    .mini-btns {
+      display: flex;
+      gap: 6px;
+      pointer-events: auto;
+    }
+    .small-btn {
+      background: var(--cream);
+      border: 2.5px solid var(--outline);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      cursor: pointer;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+    }
+    .small-btn.guide-active {
+      background: var(--yellow);
+    }
+
+    /* Joystick */
+    #joystick-zone {
+      position: absolute;
+      bottom: max(22px, env(safe-area-inset-bottom));
+      left: max(24px, env(safe-area-inset-left));
+      width: 126px;
+      height: 126px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.35);
+      border: 3px solid rgba(44, 62, 53, 0.6);
+      pointer-events: auto;
+      touch-action: none;
+    }
+    #joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 52px;
+      height: 52px;
+      margin-top: -26px;
+      margin-left: -26px;
+      border-radius: 50%;
+      background: var(--cream);
+      border: 3px solid var(--outline);
+      box-shadow: 0 4px 0 rgba(0,0,0,0.25);
+      pointer-events: none;
+    }
+
+    /* Context Action Button */
+    #action-btn {
+      position: absolute;
+      bottom: max(34px, env(safe-area-inset-bottom));
+      right: max(30px, env(safe-area-inset-right));
+      min-width: 130px;
+      min-height: 60px;
+      border-radius: 18px;
+      background: var(--yellow);
+      border: 4px solid var(--outline);
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--outline);
+      box-shadow: 0 6px 0 var(--outline);
+      cursor: pointer;
+      pointer-events: auto;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+    }
+
+    /* Dialog Modal (Non-blocking bottom card) */
+    #dialog-box {
+      position: absolute;
+      bottom: max(18px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(500px, 88vw);
+      display: none;
+      z-index: 200;
+    }
+    #dialog-speaker {
+      font-weight: 700;
+      color: #1B4D3E;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+    #dialog-text {
+      font-size: 0.94rem;
+      line-height: 1.35;
+      margin-bottom: 10px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      top: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #2E8B57;
+      color: white;
+      border: 3px solid var(--outline);
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      z-index: 300;
+      display: none;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.25);
+    }
+
+    /* Debug Overlay */
+    #debug-overlay {
+      position: fixed;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      color: #00FF88;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      z-index: 400;
+      pointer-events: none;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Portrait Orientation Warning -->
+  <div id="portrait-warning">
+    <div style="font-size:3rem; margin-bottom:12px;">📱🔄</div>
+    <h2>Pusing Telefon Ke Sisi (Landscape)</h2>
+    <p>Jejak Kebaikan: SK Lotong 3D direka untuk paparan melintang supaya mudah melihat kawasan sekolah.</p>
+  </div>
+
+  <!-- Start Screen -->
+  <div id="start-screen" class="overlay-screen">
+    <div class="card-panel">
+      <div class="title-badge">MILESTONE 0.1 - WALKING PROTOTYPE</div>
+      <h1>JEJAK KEBAIKAN<br><span style="font-size:1.3rem;">SK LOTONG 3D</span></h1>
+      <div class="jawi-text" style="font-size:1.35rem; color:#2E8B57; margin-bottom:8px;">ججق كباءيقن س.ك. لوتوڠ</div>
+      <p style="font-size:0.9rem; margin:0 0 12px;">Jelajah kawasan SK Lotong, bantu warga sekolah, pelajari Jawi & amalkan akhlak mulia!</p>
+      <div id="cdn-error" style="display:none; color:#D32F2F; font-weight:700; margin-bottom:10px;">
+        Ralat: Gagal memuatkan pustaka Three.js. Sila semak sambungan internet anda.
+      </div>
+      <div class="btn-list">
+        <button class="btn" onclick="App.startGame('school_day')">🌅 Mula Hari Persekolahan</button>
+        <button class="btn secondary" onclick="App.startGame('explore')">🧭 Mod Jelajah Bebas</button>
+        <button class="btn warn" onclick="App.toggleSettings()">⚙️ Tetapan & Kawalan</button>
+      </div>
+      <div style="margin-top:12px; font-size:0.78rem; color:#555;">
+        💻 Laptop: <b>WASD / Anak Panah</b> (Jalan), <b>Heret Tetikus</b> (Kamera), <b>E</b> (Interaksi)<br>
+        📱 Telefon: <b>Joystick Kiri</b> (Jalan), <b>Heret Sebelah Kanan</b> (Kamera)
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="overlay-screen" style="display:none;">
+    <div class="card-panel">
+      <h2>⚙️ Tetapan Permainan</h2>
+      <div class="btn-list">
+        <button class="btn secondary" id="btn-comfort" onclick="App.toggleComfort()">Comfort View: AKTIF</button>
+        <button class="btn secondary" id="btn-gfx" onclick="App.toggleGraphics()">Kualiti Grafik: NORMAL</button>
+        <button class="btn warn" onclick="App.toggleDebug()">Paparan Debug (FPS/Pos): MATI</button>
+        <button class="btn" onclick="App.toggleSettings()">Kembali</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-top-left" class="hud-box">
+      <div style="display:flex; justify-content:space-between; font-weight:700; font-size:0.9rem;">
+        <span id="hud-clock">🕖 07:20 PG</span>
+        <span id="hud-zone" style="color:#2E8B57;">Pintu Masuk</span>
+      </div>
+      <div class="stat-row">
+        <span>🌱 Kebaikan</span>
+        <div class="bar-bg"><div id="bar-kebaikan" class="bar-fill" style="width:20%; background:#4CAF50;"></div></div>
+      </div>
+      <div class="stat-row">
+        <span>📖 Ilmu</span>
+        <div class="bar-bg"><div id="bar-ilmu" class="bar-fill" style="width:15%; background:#29B6F6;"></div></div>
+      </div>
+      <div class="stat-row">
+        <span>⚡ Tenaga</span>
+        <div class="bar-bg"><div id="bar-tenaga" class="bar-fill" style="width:100%; background:#FBC02D;"></div></div>
+      </div>
+    </div>
+
+    <div id="mission-card" class="hud-box">
+      <div id="mission-title">Misi Semasa</div>
+      <div id="mission-desc">Berjumpa Ustazah di Bilik Pendidikan Islam</div>
+    </div>
+
+    <div id="minimap-wrap">
+      <canvas id="minimap-canvas" width="135" height="165"></canvas>
+      <div class="mini-btns">
+        <button class="small-btn" id="btn-guide" onclick="App.toggleGuide()">🧭 SAYA SESAT</button>
+        <button class="small-btn" onclick="App.toggleSettings()">⚙️</button>
+      </div>
+    </div>
+
+    <div id="joystick-zone">
+      <div id="joystick-knob"></div>
+    </div>
+
+    <button id="action-btn" onclick="InteractionSystem.triggerAction()">
+      <span>👋</span> <span id="action-label">CAKAP</span>
+    </button>
+
+    <div id="dialog-box" class="hud-box">
+      <div id="dialog-speaker">Ustazah</div>
+      <div id="dialog-text">Assalamualaikum! Selamat datang ke SK Lotong.</div>
+      <button class="btn" style="padding:8px 16px; font-size:0.9rem;" onclick="UIManager.closeDialog()">Teruskan (E)</button>
+    </div>
+  </div>
+
+  <div id="toast">Misi Dikemas Kini!</div>
+  <div id="debug-overlay">FPS: 60 | Pos: (0, 0) | State: IDLE</div>
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // =========================================================================
+    // 1. DATA DEFINITIONS (DATA-DRIVEN DESIGN MENGIKUT PELAN SK LOTONG)
+    // =========================================================================
+    const BUILDINGS_DATA = [
+      // Sebelah Barat (Kiri Peta: Selatan ke Utara)
+      { id: "rumah_guru_single", name: "Rumah Guru Single", jawi: "رومه ݢورو", x: -24, z: 54, w: 18, d: 10, h: 5, color: 0xF5E6CC, roof: 0x7F8C8D },
+      { id: "pentadbiran", name: "Bangunan Pentadbiran", jawi: "بڠونن ڤنتدبيرن", sub: "Bilik Guru | Tandas | Makmal Sains", x: -24, z: 30, w: 20, d: 26, h: 9.5, color: 0xECEFF1, roof: 0x546E7A },
+      { id: "kelas", name: "Bangunan Kelas (Thn 1-6)", jawi: "بڠونن كلس", sub: "Bawah: Thn 1-3 | Atas: Thn 4-6", x: -24, z: 0, w: 20, d: 26, h: 9.5, color: 0xFFF8E1, roof: 0x607D8B },
+      { id: "pendidikan_islam", name: "Bilik Pendidikan Islam", jawi: "بيليق ڤنديديقن إسلام", x: -25, z: -19, w: 16, d: 7, h: 5.5, color: 0xFFE0B2, roof: 0xD84315 },
+      { id: "bilik_spbt", name: "Bilik SPBT", jawi: "بيليق س.ڤ.ب.ت", x: -25, z: -26.5, w: 16, d: 6.5, h: 5.5, color: 0xFFE0B2, roof: 0xD84315 },
+      { id: "bilik_susu", name: "Bilik SUSU", jawi: "بيليق سوسو", x: -25, z: -33.5, w: 16, d: 6.5, h: 5.5, color: 0xFFE0B2, roof: 0xD84315 },
+      { id: "stor_pj", name: "Stor PJ", jawi: "ستور ڤ.ج.", x: -25, z: -42, w: 17, d: 7, h: 6, color: 0xFFCCBC, roof: 0xBF360C },
+      { id: "bilik_gerakan", name: "Bilik Gerakan", jawi: "بيليق ݢرقن", x: -25, z: -49.5, w: 17, d: 7.5, h: 6, color: 0xFFCCBC, roof: 0xBF360C },
+      { id: "pusat_sumber", name: "Pusat Sumber", jawi: "ڤوست سومبر", x: -25, z: -57.5, w: 17, d: 8.5, h: 6, color: 0xFFCCBC, roof: 0xBF360C },
+
+      // Tengah (Gelanggang)
+      { id: "gelanggang_badminton", name: "Gelanggang Badminton", jawi: "ݢلڠݢڠ بدمينتون", x: 0, z: -26, w: 18, d: 14, h: 0.2, color: 0x2E7D32, isCourt: true },
+      { id: "gelanggang_ bola_tampar", name: "Gelanggang Bola Tampar", jawi: "ݢلڠݢڠ بولا تمڤر", x: 0, z: -46, w: 18, d: 15, h: 0.2, color: 0xD7CCC8, isCourt: true },
+
+      // Sebelah Timur (Kanan Peta: Selatan ke Utara)
+      { id: "rumah_guru_kembar", name: "Rumah Guru Berkembar", jawi: "رومه ݢورو بركمبر", x: 25, z: 50, w: 20, d: 14, h: 5.5, color: 0xEFEBE9, roof: 0x455A64 },
+      { id: "prasekolah", name: "Bangunan Prasekolah", jawi: "ڤراسكوله", x: 25, z: 27, w: 18, d: 16, h: 5.5, color: 0xE8F5E9, roof: 0x546E7A },
+      { id: "rmt_lama", name: "Bangunan RMT Lama", jawi: "بڠونن ر.م.ت لام", x: 24, z: 7, w: 20, d: 13, h: 5.5, color: 0xFFCCBC, roof: 0xD84315 },
+      { id: "dewan_rmt", name: "Dewan RMT", jawi: "ديوان ر.م.ت", x: 24, z: -10, w: 20, d: 15, h: 6, color: 0xECEFF1, roof: 0x607D8B },
+      { id: "dewan_terbuka", name: "Dewan Terbuka", jawi: "ديوان تربوك", x: 23, z: -42, w: 15, d: 28, h: 7.5, color: 0xFFF3E0, roof: 0xFFB74D }
+    ];
+
+    const NPC_DATA = [
+      { id: "ustazah", name: "Ustazah Siti", role: "Guru Pendidikan Islam", x: -15, z: -19, color: 0x8E24AA, headscarf: 0xF3E5F5 },
+      { id: "makcik_rmt", name: "Makcik RMT", role: "Penyedia Makanan", x: 12, z: -10, color: 0xD81B60, headscarf: 0xFCE4EC },
+      { id: "murid_ahmad", name: "Ahmad (Tahun 3)", role: "Rakan Sekelas", x: -12, z: 0, color: 0x1E88E5, headscarf: null },
+      { id: "kucing_oyen", name: "Si Oyen", role: "Kucing Sekolah", x: 4, z: 16, color: 0xFB8C00, isCat: true }
+    ];
+
+    // =========================================================================
+    // 2. GAME STATE & MISSION SYSTEM
+    // =========================================================================
+    const GameState = {
+      running: false,
+      paused: false,
+      mode: "school_day",
+      timeMinutes: 7 * 60 + 20, // 07:20 PG
+      kebaikan: 20,
+      ilmu: 15,
+      tenaga: 100,
+      comfortView: true,
+      lowGraphics: false,
+      showDebug: false,
+      guideActive: true,
+      questStep: 0, // 0: Jumpa Ustazah, 1: Ambil Buku di Pusat Sumber, 2: Hantar ke Ahmad, 3: Lapor Ustazah, 4: Selesai
+      carryingItem: null
+    };
+
+    const QUEST_STEPS = [
+      {
+        title: "Misi 1: Lapor Diri",
+        desc: "Pergi ke Bilik Pendidikan Islam & sapa Ustazah Siti.",
+        targetX: -15, targetZ: -19,
+        actionLabel: "BERI SALAM"
+      },
+      {
+        title: "Misi 1: Amanah Ilmu",
+        desc: "Ambil Buku Kad Jawi di hadapan Pusat Sumber.",
+        targetX: -15, targetZ: -57.5,
+        actionLabel: "AMBIL BUKU"
+      },
+      {
+        title: "Misi 1: Bantu Rakan",
+        desc: "Serahkan Buku Kad Jawi kepada Ahmad di Bangunan Kelas.",
+        targetX: -12, targetZ: 0,
+        actionLabel: "SERAH BUKU"
+      },
+      {
+        title: "Misi 1: Maklum Balas",
+        desc: "Kembali kepada Ustazah Siti untuk melapor tugasan.",
+        targetX: -15, targetZ: -19,
+        actionLabel: "LAPOR MISI"
+      },
+      {
+        title: "Jejak Kebaikan Selesai!",
+        desc: "Teruskan menjelajah SK Lotong atau sapa Makcik RMT & Si Oyen.",
+        targetX: 12, targetZ: -10,
+        actionLabel: "CAKAP"
+      }
+    ];
+
+    // =========================================================================
+    // 3. WORLD BUILDER & THREE.JS ENGINE
+    // =========================================================================
+    let scene, camera, renderer, playerMesh, guideArrow, bookItemMesh;
+    const colliders = [];
+    const npcMeshes = [];
+    let lastTime = performance.now();
+    let fpsCounter = 60;
+
+    const WorldBuilder = {
+      init() {
+        if (typeof THREE === "undefined") {
+          document.getElementById("cdn-error").style.display = "block";
+          return false;
+        }
+        const canvas = document.getElementById("game-canvas");
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.FogExp2(0x87CEEB, 0.0045);
+
+        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.5, 220);
+
+        // Lights
+        const hemiLight = new THREE.HemisphereLight(0xFFFFFF, 0x66BB6A, 0.75);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xFFFDE7, 0.85);
+        dirLight.position.set(45, 70, 40);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 10;
+        dirLight.shadow.camera.far = 180;
+        const d = 75;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        scene.add(dirLight);
+        this.dirLight = dirLight;
+
+        this.buildGroundAndRoads();
+        this.buildBuildings();
+        this.buildCoveredWalkwayAndProps();
+        this.buildTreesAndFence();
+        this.buildPlayer();
+        this.buildNPCs();
+        this.buildQuestItems();
+
+        window.addEventListener("resize", () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        return true;
+      },
+
+      buildGroundAndRoads() {
+        // Padang Rumput Sekolah
+        const groundGeo = new THREE.PlaneGeometry(130, 160);
+        const groundMat = new THREE.MeshLambertMaterial({ color: 0x7CB342 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Jalan Utama & Laluan Kereta (Tengah Selatan ke Gelanggang Badminton)
+        const roadMat = new THREE.MeshLambertMaterial({ color: 0x78909C });
+        const mainRoad = new THREE.Mesh(new THREE.PlaneGeometry(11, 86), roadMat);
+        mainRoad.rotation.x = -Math.PI / 2;
+        mainRoad.position.set(0, 0.03, 25);
+        scene.add(mainRoad);
+
+        // Garisan Putih Jalan
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+        for (let z = -12; z <= 60; z += 8) {
+          const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 4), lineMat);
+          dash.rotation.x = -Math.PI / 2;
+          dash.position.set(0, 0.05, z);
+          scene.add(dash);
+        }
+
+        // Laluan Pejalan Kaki Bersimen
+        const pathMat = new THREE.MeshLambertMaterial({ color: 0xB0BEC5 });
+        const westPath = new THREE.Mesh(new THREE.PlaneGeometry(4, 120), pathMat);
+        westPath.rotation.x = -Math.PI / 2;
+        westPath.position.set(-12.5, 0.02, -5);
+        scene.add(westPath);
+
+        const eastPath = new THREE.Mesh(new THREE.PlaneGeometry(4, 100), pathMat);
+        eastPath.rotation.x = -Math.PI / 2;
+        eastPath.position.set(12.5, 0.02, 5);
+        scene.add(eastPath);
+      },
+
+      makeSignSprite(title, jawi, subText) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 512;
+        canvas.height = 180;
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "#FFFDF5";
+        ctx.strokeStyle = "#2C3E35";
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.roundRect(10, 10, 492, 160, 24);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#2E8B57";
+        ctx.font = "bold 34px 'Noto Naskh Arabic', serif";
+        ctx.textAlign = "center";
+        ctx.fillText(jawi || "", 256, 56);
+
+        ctx.fillStyle = "#1B4D3E";
+        ctx.font = "bold 30px 'Fredoka', sans-serif";
+        ctx.fillText(title, 256, 105);
+
+        if (subText) {
+          ctx.fillStyle = "#546E7A";
+          ctx.font = "600 21px 'Fredoka', sans-serif";
+          ctx.fillText(subText, 256, 142);
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        const mat = new THREE.SpriteMaterial({ map: tex });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(9.5, 3.3, 1);
+        return sprite;
+      },
+
+      buildBuildings() {
+        BUILDINGS_DATA.forEach(b => {
+          if (b.isCourt) {
+            // Gelanggang Sukan
+            const court = new THREE.Mesh(
+              new THREE.BoxGeometry(b.w, 0.15, b.d),
+              new THREE.MeshLambertMaterial({ color: b.color })
+            );
+            court.position.set(b.x, 0.08, b.z);
+            scene.add(court);
+
+            // Jaring Gelanggang
+            const net = new THREE.Mesh(
+              new THREE.BoxGeometry(b.w - 2, 1.8, 0.15),
+              new THREE.MeshLambertMaterial({ color: 0xFFFFFF, wireframe: false })
+            );
+            net.position.set(b.x, 1.0, b.z);
+            scene.add(net);
+
+            const sign = this.makeSignSprite(b.name, b.jawi, "");
+            sign.position.set(b.x, 4.2, b.z);
+            scene.add(sign);
+            return;
+          }
+
+          // Badan Bangunan
+          const mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(b.w, b.h, b.d),
+            new THREE.MeshLambertMaterial({ color: b.color })
+          );
+          mesh.position.set(b.x, b.h / 2, b.z);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          scene.add(mesh);
+
+          // Bumbung
+          const roofMesh = new THREE.Mesh(
+            new THREE.ConeGeometry(Math.max(b.w, b.d) * 0.78, 3.2, 4),
+            new THREE.MeshLambertMaterial({ color: b.roof })
+          );
+          roofMesh.position.set(b.x, b.h + 1.6, b.z);
+          roofMesh.rotation.y = Math.PI / 4;
+          scene.add(roofMesh);
+
+          // Papan Tanda Bangunan
+          const sign = this.makeSignSprite(b.name, b.jawi, b.sub);
+          sign.position.set(b.x, b.h + 4.8, b.z);
+          scene.add(sign);
+
+          // Simpan AABB Collider
+          colliders.push({
+            minX: b.x - b.w / 2 - 0.8,
+            maxX: b.x + b.w / 2 + 0.8,
+            minZ: b.z - b.d / 2 - 0.8,
+            maxZ: b.z + b.d / 2 + 0.8
+          });
+        });
+      },
+
+      buildCoveredWalkwayAndProps() {
+        // Jejantas / Laluan Berbumbung Tengah (Seperti dalam Peta SK Lotong)
+        const roofBridge = new THREE.Mesh(
+          new THREE.BoxGeometry(28, 0.5, 4.5),
+          new THREE.MeshLambertMaterial({ color: 0x546E7A })
+        );
+        roofBridge.position.set(0, 4.2, 15);
+        scene.add(roofBridge);
+
+        // Tangki Air Biru (Ikonik dalam Peta SK Lotong)
+        const tankMat = new THREE.MeshLambertMaterial({ color: 0x1976D2 });
+        const tankCoords = [
+          [-36, 26], [-36, 30], [-36, 34], // Barat Bangunan Pentadbiran
+          [-36, -50],                      // Barat Bilik Gerakan
+          [36, 7],                         // Timur RMT Lama
+          [36, -15],                       // Timur Dewan RMT
+          [32, -32]                        // Selatan Dewan Terbuka
+        ];
+        tankCoords.forEach(([tx, tz]) => {
+          const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 3.5, 12), tankMat);
+          tank.position.set(tx, 1.75, tz);
+          scene.add(tank);
+        });
+
+        // Pintu Pagar Utama (Selatan)
+        const pillarMat = new THREE.MeshLambertMaterial({ color: 0xD84315 });
+        [-6.5, 6.5].forEach(px => {
+          const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.5, 4, 1.5), pillarMat);
+          pillar.position.set(px, 2, 62);
+          scene.add(pillar);
+        });
+        const gateSign = this.makeSignSprite("Pintu Masuk SK Lotong", "ڤينتو ماسوق", "Selamat Datang");
+        gateSign.position.set(0, 6.2, 62);
+        scene.add(gateSign);
+      },
+
+      buildTreesAndFence() {
+        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x6D4C41 });
+        const leafMat = new THREE.MeshLambertMaterial({ color: 0x2E7D32 });
+
+        const treePositions = [
+          [-42, 55], [-42, 35], [-42, 10], [-42, -15], [-42, -40], [-42, -62],
+          [42, 55], [42, 35], [42, 15], [42, -10], [42, -35], [42, -60],
+          [-8, 38], [8, 38], [-8, 22], [8, 22], [-8, -5], [8, -5]
+        ];
+        treePositions.forEach(([x, z]) => {
+          const group = new THREE.Group();
+          const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 2.5, 7), trunkMat);
+          trunk.position.y = 1.25;
+          const crown = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 8), leafMat);
+          crown.position.y = 3.5;
+          group.add(trunk, crown);
+          group.position.set(x, 0, z);
+          scene.add(group);
+        });
+      },
+
+      buildPlayer() {
+        playerMesh = new THREE.Group();
+        // Badan Uniform Sekolah
+        const body = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.55, 0.65, 1.5, 12),
+          new THREE.MeshLambertMaterial({ color: 0xFFFFFF })
+        );
+        body.position.y = 1.1;
+        // Kepala
+        const head = new THREE.Mesh(
+          new THREE.SphereGeometry(0.5, 12, 12),
+          new THREE.MeshLambertMaterial({ color: 0xFFCC80 })
+        );
+        head.position.y = 2.2;
+        // Songkok / Tudung Biru Gelap
+        const cap = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.52, 0.52, 0.35, 12),
+          new THREE.MeshLambertMaterial({ color: 0x1A237E })
+        );
+        cap.position.y = 2.55;
+
+        playerMesh.add(body, head, cap);
+        playerMesh.position.set(0, 0, 52); // Spawn di Pintu Masuk
+        scene.add(playerMesh);
+
+        // Anak Panah Penunjuk Arah ("SAYA SESAT")
+        guideArrow = new THREE.Mesh(
+          new THREE.ConeGeometry(0.45, 1.3, 8),
+          new THREE.MeshBasicMaterial({ color: 0xFFD600 })
+        );
+        guideArrow.rotation.x = Math.PI / 2;
+        guideArrow.position.set(0, 3.4, 52);
+        scene.add(guideArrow);
+      },
+
+      buildNPCs() {
+        NPC_DATA.forEach(npc => {
+          const group = new THREE.Group();
+          if (npc.isCat) {
+            const catBody = new THREE.Mesh(
+              new THREE.BoxGeometry(0.8, 0.5, 1.1),
+              new THREE.MeshLambertMaterial({ color: npc.color })
+            );
+            catBody.position.y = 0.35;
+            group.add(catBody);
+          } else {
+            const body = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.55, 0.65, 1.6, 10),
+              new THREE.MeshLambertMaterial({ color: npc.color })
+            );
+            body.position.y = 1.1;
+            const head = new THREE.Mesh(
+              new THREE.SphereGeometry(0.48, 10, 10),
+              new THREE.MeshLambertMaterial({ color: 0xFFCC80 })
+            );
+            head.position.y = 2.2;
+            group.add(body, head);
+          }
+
+          // Marker ! di atas NPC
+          const marker = this.makeSignSprite(npc.name, "", npc.role);
+          marker.scale.set(5.5, 1.9, 1);
+          marker.position.y = 3.5;
+          group.add(marker);
+
+          group.position.set(npc.x, 0, npc.z);
+          group.userData = npc;
+          scene.add(group);
+          npcMeshes.push(group);
+        });
+      },
+
+      buildQuestItems() {
+        // Buku Kad Jawi di Pusat Sumber
+        bookItemMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.9, 0.3, 1.2),
+          new THREE.MeshLambertMaterial({ color: 0xFFD600 })
+        );
+        bookItemMesh.position.set(-15, 0.8, -57.5);
+        bookItemMesh.visible = false;
+        scene.add(bookItemMesh);
+      }
+    };
+
+    // =========================================================================
+    // 4. PLAYER & CAMERA CONTROLLER (MULTI-TOUCH SAFE)
+    // =========================================================================
+    const Controls = {
+      keys: {},
+      joyVec: { x: 0, y: 0 },
+      joyTouchId: null,
+      camTouchId: null,
+      lastCamX: 0,
+      lastCamY: 0,
+      yaw: Math.PI, // Menghadap Utara (ke dalam sekolah)
+      pitch: 0.32,
+
+      init() {
+        window.addEventListener("keydown", e => {
+          this.keys[e.code] = true;
+          if (e.code === "KeyE") InteractionSystem.triggerAction();
+        });
+        window.addEventListener("keyup", e => { this.keys[e.code] = false; });
+
+        // Desktop Mouse Drag Camera
+        let mouseDown = false;
+        const canvas = document.getElementById("game-canvas");
+        canvas.addEventListener("mousedown", e => {
+          mouseDown = true;
+          this.lastCamX = e.clientX;
+          this.lastCamY = e.clientY;
+        });
+        window.addEventListener("mouseup", () => { mouseDown = false; });
+        window.addEventListener("mousemove", e => {
+          if (!mouseDown || !GameState.running) return;
+          const sens = GameState.comfortView ? 0.004 : 0.007;
+          this.yaw -= (e.clientX - this.lastCamX) * sens;
+          this.pitch = Math.max(0.12, Math.min(0.85, this.pitch + (e.clientY - this.lastCamY) * sens));
+          this.lastCamX = e.clientX;
+          this.lastCamY = e.clientY;
+        });
+
+        // Mobile Virtual Joystick (Touch ID Asing)
+        const joyZone = document.getElementById("joystick-zone");
+        const joyKnob = document.getElementById("joystick-knob");
+        const maxR = 42;
+
+        joyZone.addEventListener("touchstart", e => {
+          e.preventDefault();
+          const t = e.changedTouches[0];
+          this.joyTouchId = t.identifier;
+          this.updateJoystick(t, joyZone, joyKnob, maxR);
+        }, { passive: false });
+
+        joyZone.addEventListener("touchmove", e => {
+          e.preventDefault();
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === this.joyTouchId) {
+              this.updateJoystick(e.changedTouches[i], joyZone, joyKnob, maxR);
+            }
+          }
+        }, { passive: false });
+
+        const endJoy = e => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === this.joyTouchId) {
+              this.joyTouchId = null;
+              this.joyVec.x = 0;
+              this.joyVec.y = 0;
+              joyKnob.style.transform = `translate(0px, 0px)`;
+            }
+          }
+        };
+        joyZone.addEventListener("touchend", endJoy);
+        joyZone.addEventListener("touchcancel", endJoy);
+
+        // Mobile Right-Drag Camera (Touch ID Asing)
+        canvas.addEventListener("touchstart", e => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            if (this.camTouchId === null && t.identifier !== this.joyTouchId) {
+              this.camTouchId = t.identifier;
+              this.lastCamX = t.clientX;
+              this.lastCamY = t.clientY;
+            }
+          }
+        }, { passive: true });
+
+        canvas.addEventListener("touchmove", e => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            if (t.identifier === this.camTouchId) {
+              const sens = GameState.comfortView ? 0.005 : 0.008;
+              this.yaw -= (t.clientX - this.lastCamX) * sens;
+              this.pitch = Math.max(0.12, Math.min(0.85, this.pitch + (t.clientY - this.lastCamY) * sens));
+              this.lastCamX = t.clientX;
+              this.lastCamY = t.clientY;
+            }
+          }
+        }, { passive: true });
+
+        const endCam = e => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === this.camTouchId) {
+              this.camTouchId = null;
+            }
+          }
+        };
+        canvas.addEventListener("touchend", endCam);
+        canvas.addEventListener("touchcancel", endCam);
+      },
+
+      updateJoystick(touch, zone, knob, maxR) {
+        const rect = zone.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        let dx = touch.clientX - cx;
+        let dy = touch.clientY - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > maxR) {
+          dx = (dx / dist) * maxR;
+          dy = (dy / dist) * maxR;
+        }
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        this.joyVec.x = dx / maxR;
+        this.joyVec.y = dy / maxR;
+      },
+
+      update(dt) {
+        let moveX = this.joyVec.x;
+        let moveZ = this.joyVec.y;
+
+        if (this.keys["KeyW"] || this.keys["ArrowUp"]) moveZ -= 1;
+        if (this.keys["KeyS"] || this.keys["ArrowDown"]) moveZ += 1;
+        if (this.keys["KeyA"] || this.keys["ArrowLeft"]) moveX -= 1;
+        if (this.keys["KeyD"] || this.keys["ArrowRight"]) moveX += 1;
+
+        const len = Math.hypot(moveX, moveZ);
+        if (len > 0.05) {
+          const normX = moveX / Math.max(1, len);
+          const normZ = moveZ / Math.max(1, len);
+          const speed = 13.5;
+
+          const forwardX = -Math.sin(this.yaw);
+          const forwardZ = -Math.cos(this.yaw);
+          const rightX = Math.cos(this.yaw);
+          const rightZ = -Math.sin(this.yaw);
+
+          const vx = (forwardX * (-normZ) + rightX * normX) * speed * dt;
+          const vz = (forwardZ * (-normZ) + rightZ * normX) * speed * dt;
+
+          const nextX = playerMesh.position.x + vx;
+          const nextZ = playerMesh.position.z + vz;
+
+          if (!this.checkCollision(nextX, playerMesh.position.z)) playerMesh.position.x = nextX;
+          if (!this.checkCollision(playerMesh.position.x, nextZ)) playerMesh.position.z = nextZ;
+
+          playerMesh.rotation.y = Math.atan2(vx, vz);
+        }
+
+        // Had Sempadan Pagar Sekolah
+        playerMesh.position.x = Math.max(-46, Math.min(46, playerMesh.position.x));
+        playerMesh.position.z = Math.max(-65, Math.min(62, playerMesh.position.z));
+
+        // Kemas Kini Kamera Third-Person
+        const camDist = 11.5;
+        const targetCamX = playerMesh.position.x + Math.sin(this.yaw) * camDist * Math.cos(this.pitch);
+        const targetCamZ = playerMesh.position.z + Math.cos(this.yaw) * camDist * Math.cos(this.pitch);
+        const targetCamY = playerMesh.position.y + 2.2 + Math.sin(this.pitch) * camDist;
+
+        camera.position.lerp(new THREE.Vector3(targetCamX, targetCamY, targetCamZ), 0.18);
+        camera.lookAt(playerMesh.position.x, playerMesh.position.y + 1.8, playerMesh.position.z);
+
+        // Kemas Kini Anak Panah "SAYA SESAT"
+        const step = QUEST_STEPS[GameState.questStep];
+        guideArrow.visible = GameState.guideActive;
+        if (GameState.guideActive && step) {
+          guideArrow.position.set(playerMesh.position.x, 3.4, playerMesh.position.z);
+          guideArrow.lookAt(step.targetX, 3.4, step.targetZ);
+        }
+
+        // Buku di Tangan Jika Sedang Dibawa
+        if (GameState.carryingItem === "buku_jawi") {
+          bookItemMesh.visible = true;
+          bookItemMesh.position.set(
+            playerMesh.position.x + Math.sin(playerMesh.rotation.y) * 0.8,
+            1.4,
+            playerMesh.position.z + Math.cos(playerMesh.rotation.y) * 0.8
+          );
+        }
+      },
+
+      checkCollision(x, z) {
+        for (let i = 0; i < colliders.length; i++) {
+          const c = colliders[i];
+          if (x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ) return true;
+        }
+        return false;
+      }
+    };
+
+    // =========================================================================
+    // 5. INTERACTION SYSTEM & UI MANAGER
+    // =========================================================================
+    const InteractionSystem = {
+      activeTarget: null,
+
+      update() {
+        const px = playerMesh.position.x;
+        const pz = playerMesh.position.z;
+        const step = QUEST_STEPS[GameState.questStep];
+
+        // Semak jarak ke sasaran misi semasa
+        const distQuest = Math.hypot(px - step.targetX, pz - step.targetZ);
+        const btn = document.getElementById("action-btn");
+        const label = document.getElementById("action-label");
+
+        if (distQuest < 5.0) {
+          this.activeTarget = "quest_target";
+          label.textContent = step.actionLabel;
+          btn.style.display = "flex";
+          return;
+        }
+
+        // Semak jarak ke NPC lain
+        for (let i = 0; i < NPC_DATA.length; i++) {
+          const n = NPC_DATA[i];
+          if (Math.hypot(px - n.x, pz - n.z) < 4.2) {
+            this.activeTarget = n;
+            label.textContent = n.isCat ? "USAP KUCING" : "CAKAP";
+            btn.style.display = "flex";
+            return;
+          }
+        }
+
+        this.activeTarget = null;
+        btn.style.display = "none";
+      },
+
+      triggerAction() {
+        const dialogOpen = document.getElementById("dialog-box").style.display === "block";
+        if (dialogOpen) {
+          UIManager.closeDialog();
+          return;
+        }
+        if (!this.activeTarget) return;
+
+        if (this.activeTarget === "quest_target") {
+          this.advanceQuest();
+        } else if (this.activeTarget.id === "makcik_rmt") {
+          UIManager.showDialog("Makcik RMT", "Terima kasih kerana singgah di Dewan RMT! Nanti waktu rehat jangan lupa baca doa makan dan susun dulang ya.");
+        } else if (this.activeTarget.id === "kucing_oyen") {
+          UIManager.showDialog("Si Oyen 🐱", "Meow~ (Si Oyen bergesel gembira. Menyayangi haiwan adalah sifat terpuji! +5 Kebaikan)");
+          GameState.kebaikan = Math.min(100, GameState.kebaikan + 5);
+          UIManager.updateHUD();
+        } else {
+          UIManager.showDialog(this.activeTarget.name, "Assalamualaikum! Teruskan usaha membina Jejak Kebaikan di SK Lotong.");
+        }
+      },
+
+      advanceQuest() {
+        if (GameState.questStep === 0) {
+          UIManager.showDialog(
+            "Ustazah Siti",
+            "Waalaikumussalam warahmatullah! Alhamdulillah, boleh tolong Ustazah ambilkan Buku Kad Jawi (ا ب ت) di Pusat Sumber dan berikan kepada Ahmad di Bangunan Kelas?"
+          );
+          GameState.questStep = 1;
+          bookItemMesh.visible = true;
+          bookItemMesh.position.set(-15, 0.8, -57.5);
+          UIManager.showToast("Misi Baharu: Ambil Buku di Pusat Sumber!");
+        } else if (GameState.questStep === 1) {
+          GameState.carryingItem = "buku_jawi";
+          GameState.questStep = 2;
+          UIManager.showToast("📚 Buku Kad Jawi diambil! Hantar kepada Ahmad.");
+        } else if (GameState.questStep === 2) {
+          GameState.carryingItem = null;
+          bookItemMesh.visible = false;
+          GameState.questStep = 3;
+          GameState.kebaikan = Math.min(100, GameState.kebaikan + 20);
+          UIManager.showDialog(
+            "Ahmad (Tahun 3)",
+            "Jazakallahu khairan sahabat! Sekarang saya boleh ulang kaji huruf Jawi. Tolong beritahu Ustazah Siti buku sudah sampai ya."
+          );
+        } else if (GameState.questStep === 3) {
+          GameState.questStep = 4;
+          GameState.kebaikan = Math.min(100, GameState.kebaikan + 25);
+          GameState.ilmu = Math.min(100, GameState.ilmu + 25);
+          UIManager.showDialog(
+            "Ustazah Siti",
+            "Alhamdulillah, tahniah kerana bersikap amanah dan tolong-menolong! (+25 Kebaikan, +25 Ilmu). Sekarang kamu bebas meneroka seluruh kawasan SK Lotong."
+          );
+          UIManager.showToast("🌟 Misi Selesai! +25 Kebaikan & +25 Ilmu");
+        } else {
+          UIManager.showDialog("Makcik RMT", "Seronok melihat murid SK Lotong rajin membantu warga sekolah!");
+        }
+        UIManager.updateHUD();
+      }
+    };
+
+    const UIManager = {
+      showDialog(speaker, text) {
+        document.getElementById("dialog-speaker").textContent = speaker;
+        document.getElementById("dialog-text").textContent = text;
+        document.getElementById("dialog-box").style.display = "block";
+      },
+      closeDialog() {
+        document.getElementById("dialog-box").style.display = "none";
+      },
+      showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.style.display = "block";
+        setTimeout(() => { t.style.display = "none"; }, 3000);
+      },
+      updateHUD() {
+        const step = QUEST_STEPS[GameState.questStep];
+        document.getElementById("mission-title").textContent = step.title;
+        document.getElementById("mission-desc").textContent = step.desc;
+        document.getElementById("bar-kebaikan").style.width = `${GameState.kebaikan}%`;
+        document.getElementById("bar-ilmu").style.width = `${GameState.ilmu}%`;
+        document.getElementById("bar-tenaga").style.width = `${GameState.tenaga}%`;
+
+        // Cari nama zon terdekat
+        let nearestName = "Kawasan Sekolah";
+        let minDist = 999;
+        BUILDINGS_DATA.forEach(b => {
+          const d = Math.hypot(playerMesh.position.x - b.x, playerMesh.position.z - b.z);
+          if (d < minDist) {
+            minDist = d;
+            nearestName = b.name;
+          }
+        });
+        document.getElementById("hud-zone").textContent = nearestName;
+      },
+      drawMinimap() {
+        const c = document.getElementById("minimap-canvas");
+        const ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, c.width, c.height);
+
+        const mapX = x => (x + 50) * (c.width / 100);
+        const mapZ = z => (z + 70) * (c.height / 140);
+
+        // Lukis Jalan
+        ctx.fillStyle = "#90A4AE";
+        ctx.fillRect(mapX(-5), mapZ(-15), 14, 90);
+
+        // Lukis Bangunan
+        BUILDINGS_DATA.forEach(b => {
+          ctx.fillStyle = b.isCourt ? "#66BB6A" : "#8D6E63";
+          const bx = mapX(b.x - b.w / 2);
+          const bz = mapZ(b.z - b.d / 2);
+          ctx.fillRect(bx, bz, b.w * 1.35, b.d * 1.15);
+        });
+
+        // Objektif Aktif (Kuning Berkelip)
+        const step = QUEST_STEPS[GameState.questStep];
+        if (step) {
+          ctx.fillStyle = "#FFD600";
+          ctx.beginPath();
+          ctx.arc(mapX(step.targetX), mapZ(step.targetZ), 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#000";
+          ctx.stroke();
+        }
+
+        // Pemain (Merah/Putih)
+        ctx.fillStyle = "#D32F2F";
+        ctx.beginPath();
+        ctx.arc(mapX(playerMesh.position.x), mapZ(playerMesh.position.z), 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    // =========================================================================
+    // 6. MAIN APPLICATION & GAME LOOP
+    // =========================================================================
+    const App = {
+      initialized: false,
+
+      startGame(mode) {
+        if (!this.initialized) {
+          if (!WorldBuilder.init()) return;
+          Controls.init();
+          this.initialized = true;
+          requestAnimationFrame(this.loop.bind(this));
+        }
+        GameState.mode = mode;
+        GameState.running = true;
+        document.getElementById("start-screen").style.display = "none";
+        document.getElementById("hud").style.display = "block";
+        UIManager.updateHUD();
+      },
+
+      toggleSettings() {
+        const modal = document.getElementById("settings-modal");
+        modal.style.display = modal.style.display === "none" ? "flex" : "none";
+      },
+
+      toggleComfort() {
+        GameState.comfortView = !GameState.comfortView;
+        document.getElementById("btn-comfort").textContent =
+          `Comfort View: ${GameState.comfortView ? "AKTIF" : "MATI"}`;
+      },
+
+      toggleGraphics() {
+        GameState.lowGraphics = !GameState.lowGraphics;
+        if (WorldBuilder.dirLight) {
+          WorldBuilder.dirLight.castShadow = !GameState.lowGraphics;
+        }
+        document.getElementById("btn-gfx").textContent =
+          `Kualiti Grafik: ${GameState.lowGraphics ? "RENDAH (LAJU)" : "NORMAL"}`;
+      },
+
+      toggleDebug() {
+        GameState.showDebug = !GameState.showDebug;
+        document.getElementById("debug-overlay").style.display =
+          GameState.showDebug ? "block" : "none";
+      },
+
+      toggleGuide() {
+        GameState.guideActive = !GameState.guideActive;
+        document.getElementById("btn-guide").classList.toggle("guide-active", GameState.guideActive);
+      },
+
+      loop(now) {
+        requestAnimationFrame(this.loop.bind(this));
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+        fpsCounter = Math.round(0.9 * fpsCounter + 0.1 * (1 / Math.max(0.001, dt)));
+
+        if (GameState.running && !document.hidden) {
+          Controls.update(dt);
+          InteractionSystem.update();
+          UIManager.drawMinimap();
+
+          // Jam Permainan (1 minit game = 4 saat dunia sebenar)
+          GameState.timeMinutes += dt * 0.25;
+          const hrs = Math.floor(GameState.timeMinutes / 60) % 24;
+          const mins = Math.floor(GameState.timeMinutes % 60);
+          document.getElementById("hud-clock").textContent =
+            `🕖 ${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")} PG`;
+
+          if (GameState.showDebug) {
+            document.getElementById("debug-overlay").textContent =
+              `FPS: ${fpsCounter} | Pos: (${playerMesh.position.x.toFixed(1)}, ${playerMesh.position.z.toFixed(1)}) | QuestStep: ${GameState.questStep} | Target: ${InteractionSystem.activeTarget ? "ACTIVE" : "NONE"}`;
+          }
+        }
+        renderer.render(scene, camera);
+      }
+    };
+  </script>
+</body>
+</html>
